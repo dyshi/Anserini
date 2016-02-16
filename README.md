@@ -157,4 +157,17 @@ Output all the document IDs in a Lucene Index.
 sh target/appassembler/bin/DumpDocids -indexPath /path/to/index \
 -docIdPath /path/to/save/docIds -docIdName "name of docID field"
 ```
+
+### Extract feature vectors:
+
+Generate features for the first 1000 hits of each query
+```
+ ./target/appassembler/bin/SearchWebCollection -collection GOV2 -index index -topics topic -output output -bm25 -dump -featureFile path/to/output/featurevector} -qrels qrels -hits 1000 [-extractors path/to/extractor/json]
+```
+
+Generate feature vectors for the qrel documents
+```
+./target/appassembler/bin/FeatureExtractor -index index -qrel qrel -topic topics -out path/to/output -collection [-extractors path/to/json]
+```
+
 =======
