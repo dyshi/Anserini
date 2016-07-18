@@ -1,0 +1,74 @@
+{
+  extractors: [
+    {
+      name:MatchingTermCount
+    },
+    {
+      name: QueryLength
+    },
+    {
+      name: TwitterHashtagCount
+    },
+    {
+      name: IsTweetReply
+    },
+    {
+      name: TwitterLinkCount
+    },
+    {
+      name : TwitterFollowerCount
+    },
+    {
+      name: TwitterFriendCount
+    },
+    {
+      name: AvgICTF
+    },
+    {
+      name: SimplifiedClarityScore
+    },
+    {
+      name: PMIFeature
+    },
+    {
+      name: AvgSCQ
+    },
+    {
+      name: SumMatchingTf
+    },
+    {
+      name: UnigramsFeatureExtractor
+    },
+    {
+      name: BM25Feature,
+      params: {
+        k1: 0.9,
+        b: 0.4
+      }
+    },
+    {
+      name: DocSize
+    },
+    {
+      name: SumTermFrequency
+    },
+    {
+      name: TFIDF
+    },
+    {
+      name: UniqueQueryTerms
+    },
+    {
+      name: UnorderedSequentialPairs,
+      params: {
+        gapSize: 2
+      }
+    },
+    {
+      name: OrderedSequentialPairs,
+      params: {
+        gapSize: 2
+      }
+    }
+  ]
+}

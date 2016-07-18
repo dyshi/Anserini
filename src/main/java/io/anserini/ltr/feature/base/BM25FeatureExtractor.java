@@ -10,7 +10,10 @@ import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.search.CollectionStatistics;
+import org.apache.lucene.search.TermStatistics;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.util.SmallFloat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -27,6 +30,17 @@ import java.util.Set;
  */
 public class BM25FeatureExtractor implements FeatureExtractor{
   private static final Logger LOG = LogManager.getLogger(BM25FeatureExtractor.class);
+
+  /** Cache of decoded bytes. */
+  private static final float[] NORM_TABLE = new float[256];
+
+  static {
+    for (int i = 0; i < 256; i++) {
+      float f = SmallFloat.byte315ToFloat((byte)i);
+      NORM_TABLE[i] = 1.0f / (f*f);
+    }
+  }
+
 
   public static Map<String, Integer> getDocFreqs(IndexReader reader, List<String> queryTokens, String field) throws IOException {
     Map<String,Integer> docFreqs = new HashMap<>();
@@ -101,7 +115,6 @@ public class BM25FeatureExtractor implements FeatureExtractor{
 
     IndexReader reader = context.getIndexSearcher().getIndexReader();
     long maxDocs = reader.numDocs();
-    long sumTotalTermFreq = getSumTermFrequency(reader, context.getField());
     // Compute by iterating
     long docSize  = 0L;
 
@@ -127,19 +140,28 @@ public class BM25FeatureExtractor implements FeatureExtractor{
     } catch (IOException e) {
       LOG.warn("Unable to retrieve termsEnum, treating as 0");
     }
-
     float score = 0.0f;
-    // Iterate over the query tokens
-    double avgFL = computeAvgFL(sumTotalTermFreq, maxDocs);
-    for (String token : queryTokens) {
-      long docFreq = docFreqMap.containsKey(token) ? docFreqMap.get(token) : 0;
-      double termFreq = termFreqMap.containsKey(token) ? termFreqMap.get(token) : 0;
-      double numerator = (this.k1 + 1) * termFreq;
-      double docLengthFactor = this.b * (docSize / avgFL);
-      double denominator = termFreq + (this.k1) * (1 - this.b + docLengthFactor);
-      score += computeIDF(docFreq, maxDocs) * numerator / denominator;
-    }
 
+    try {
+      CollectionStatistics collectionStatistics = context.getIndexSearcher().collectionStatistics(context.getField());
+      long max = collectionStatistics.maxDoc();
+      long sumTotalTermFreq = collectionStatistics.sumTotalTermFreq();
+
+      // Iterate over the query tokens
+      double avgFL = computeAvgFL(sumTotalTermFreq, max);
+      for (String token : queryTokens) {
+        long docFreq = docFreqMap.containsKey(token) ? docFreqMap.get(token) : 0;
+        // Lucene weight = computeIDF(docFreq, max) * (this.k1 + 1);
+        // Calculation is the same at the end
+        double termFreq = termFreqMap.containsKey(token) ? termFreqMap.get(token) : 0;
+        double numerator = (this.k1 + 1) * termFreq;
+        double docLengthFactor = this.b * (docSize / avgFL);
+        double denominator = termFreq + (this.k1) * (1 - this.b + docLengthFactor);
+        score += computeIDF(docFreq, max) * numerator / denominator;
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
     return score;
   }
 
